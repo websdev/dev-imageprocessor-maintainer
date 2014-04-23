@@ -64,7 +64,7 @@ var updateIP = function (req, res) {
 
 				if(siteName.indexOf('localhost') > -1 || siteName.indexOf('devwebsimageprocessor201') > -1
 					|| siteName.indexOf('ip6-') > -1) {
-					res.send(500, '{ "Error" : "Invalid site name" }')
+					res.json(500, { "Error" : "Invalid site name" })
 					return;
 				}
 
@@ -83,20 +83,24 @@ var updateIP = function (req, res) {
 				function (error, stdout, stderr) {
 					console.log('stdout: ' + stdout);
 
+					var match = stdout.match(/\.\.\.done\./g);
+
 					if (error !== null ) {
 						console.log('exec error: ' + error);
-						res.send(500, '{ "Error" : "' + error.stack + '"}');
-					} else if (stdout.match(/\[\sOK\s\]/g).length < 2) {
-						//expect 3 "[ OK ]" blocks
-						console.log('did not receive 3 OKs for dnsmasq restart:\n' + stdout);
-						res.send(500, '{ "Error" : "DNSMasq restart not successful" }');
+						res.json(500, { "Error" : error.stack} );
 					} else {
-						res.send(200, 'OK');
+						//expect 3 "...done." blocks
+						if(!match || match.length < 2) {
+							console.log('did not receive 3 OKs for dnsmasq restart:\n' + stdout);
+							res.json(500, { "Error" : "DNSMasq restart not successful" } );
+						} else {
+							res.send(200, 'OK');
+						}
 					}
 				});
 		}
 		catch(err) {
-			res.send(500, '{ "Error" : "' + err.stack + '"}');
+			res.json(500, { "Error" : err.stack } );
 		}
 	}
 }
